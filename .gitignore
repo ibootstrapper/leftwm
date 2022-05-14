@@ -2,7 +2,7 @@
 **/*.rs.bk
 leftwm.logs
 .idea/
-
+.vscode/
 result
 .direnv
 .envrc
