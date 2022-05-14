@@ -1,6 +1,6 @@
 use super::{
     default_terminal, exit_strategy, BaseCommand, Config, Default, FocusBehaviour, Keybind,
-    LayoutMode, ThemeSetting, LAYOUTS,
+    ThemeSetting,
 };
 
 impl Default for Config {
@@ -68,48 +68,6 @@ impl Default for Config {
                 key: "w".to_owned(),
             },
             Keybind {
-                command: BaseCommand::MoveWindowUp,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Shift".to_owned()].into()),
-                key: "k".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::MoveWindowDown,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Shift".to_owned()].into()),
-                key: "j".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::MoveWindowTop,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned()].into()),
-                key: "Return".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::FocusWindowUp,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned()].into()),
-                key: "k".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::FocusWindowDown,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned()].into()),
-                key: "j".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::NextLayout,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Control".to_owned()].into()),
-                key: "k".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::PreviousLayout,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Control".to_owned()].into()),
-                key: "j".to_owned(),
-            },
-            Keybind {
                 command: BaseCommand::FocusWorkspaceNext,
                 value: String::default(),
                 modifier: Some(vec!["modkey".to_owned()].into()),
@@ -120,42 +78,6 @@ impl Default for Config {
                 value: String::default(),
                 modifier: Some(vec!["modkey".to_owned()].into()),
                 key: "h".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::MoveWindowUp,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Shift".to_owned()].into()),
-                key: "Up".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::MoveWindowDown,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Shift".to_owned()].into()),
-                key: "Down".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::FocusWindowUp,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned()].into()),
-                key: "Up".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::FocusWindowDown,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned()].into()),
-                key: "Down".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::NextLayout,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Control".to_owned()].into()),
-                key: "Up".to_owned(),
-            },
-            Keybind {
-                command: BaseCommand::PreviousLayout,
-                value: String::default(),
-                modifier: Some(vec!["modkey".to_owned(), "Control".to_owned()].into()),
-                key: "Down".to_owned(),
             },
             Keybind {
                 command: BaseCommand::FocusWorkspaceNext,
@@ -199,8 +121,6 @@ impl Default for Config {
         Self {
             workspaces: Some(vec![]),
             tags: Some(tags),
-            layouts: LAYOUTS.to_vec(),
-            layout_mode: LayoutMode::Workspace,
             // TODO: add sane default for scratchpad config.
             // Currently default values are set in sane_dimension fn.
             scratchpad: Some(vec![]),

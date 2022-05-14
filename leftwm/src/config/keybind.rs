@@ -1,7 +1,6 @@
 use super::BaseCommand;
 use crate::Config;
 use anyhow::{ensure, Context, Result};
-use leftwm_core::layouts::Layout;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -44,29 +43,11 @@ impl Keybind {
             BaseCommand::FloatingToTile => leftwm_core::Command::FloatingToTile,
             BaseCommand::TileToFloating => leftwm_core::Command::TileToFloating,
             BaseCommand::ToggleFloating => leftwm_core::Command::ToggleFloating,
-            BaseCommand::MoveWindowUp => leftwm_core::Command::MoveWindowUp,
-            BaseCommand::MoveWindowDown => leftwm_core::Command::MoveWindowDown,
-            BaseCommand::MoveWindowTop => leftwm_core::Command::MoveWindowTop {
-                swap: if self.value.is_empty() {
-                    true
-                } else {
-                    bool::from_str(&self.value)
-                        .context("invalid boolean value for MoveWindowTop")?
-                },
-            },
+
             BaseCommand::FocusNextTag => leftwm_core::Command::FocusNextTag,
             BaseCommand::FocusPreviousTag => leftwm_core::Command::FocusPreviousTag,
             BaseCommand::FocusWindow => leftwm_core::Command::FocusWindow(self.value.clone()),
-            BaseCommand::FocusWindowUp => leftwm_core::Command::FocusWindowUp,
-            BaseCommand::FocusWindowDown => leftwm_core::Command::FocusWindowDown,
-            BaseCommand::FocusWindowTop => leftwm_core::Command::FocusWindowTop {
-                swap: if self.value.is_empty() {
-                    false
-                } else {
-                    bool::from_str(&self.value)
-                        .context("invalid boolean value for FocusWindowTop")?
-                },
-            },
+
             BaseCommand::FocusWorkspaceNext => leftwm_core::Command::FocusWorkspaceNext,
             BaseCommand::FocusWorkspacePrevious => leftwm_core::Command::FocusWorkspacePrevious,
             BaseCommand::MoveToTag => leftwm_core::Command::SendWindowToTag {
@@ -82,19 +63,7 @@ impl Keybind {
                 leftwm_core::Command::MoveWindowToPreviousWorkspace
             }
             BaseCommand::MouseMoveWindow => leftwm_core::Command::MouseMoveWindow,
-            BaseCommand::NextLayout => leftwm_core::Command::NextLayout,
-            BaseCommand::PreviousLayout => leftwm_core::Command::PreviousLayout,
-            BaseCommand::SetLayout => leftwm_core::Command::SetLayout(
-                Layout::from_str(&self.value)
-                    .context("could not parse layout for command SetLayout")?,
-            ),
-            BaseCommand::RotateTag => leftwm_core::Command::RotateTag,
-            BaseCommand::IncreaseMainWidth => leftwm_core::Command::IncreaseMainWidth(
-                i8::from_str(&self.value).context("invalid width value for IncreaseMainWidth")?,
-            ),
-            BaseCommand::DecreaseMainWidth => leftwm_core::Command::DecreaseMainWidth(
-                i8::from_str(&self.value).context("invalid width value for DecreaseMainWidth")?,
-            ),
+
             BaseCommand::SetMarginMultiplier => leftwm_core::Command::SetMarginMultiplier(
                 f32::from_str(&self.value)
                     .context("invalid margin multiplier for SetMarginMultiplier")?,

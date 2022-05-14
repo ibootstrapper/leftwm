@@ -11,8 +11,7 @@ use crate::config::keybind::Keybind;
 use anyhow::Result;
 use leftwm_core::{
     config::{InsertBehavior, ScratchPad, Workspace},
-    layouts::{Layout, LAYOUTS},
-    models::{FocusBehaviour, Gutter, LayoutMode, Margins, Size, Window},
+    models::{FocusBehaviour, Gutter, Margins, Size, Window},
     state::State,
     DisplayServer, Manager,
 };
@@ -88,8 +87,6 @@ pub struct Config {
     pub workspaces: Option<Vec<Workspace>>,
     pub tags: Option<Vec<String>>,
     pub max_window_width: Option<Size>,
-    pub layouts: Vec<Layout>,
-    pub layout_mode: LayoutMode,
     pub insert_behavior: InsertBehavior,
     pub scratchpad: Option<Vec<ScratchPad>>,
     pub window_rules: Option<Vec<WindowHook>>,
@@ -300,14 +297,6 @@ impl leftwm_core::Config for Config {
             return scratchpads.clone();
         }
         return vec![];
-    }
-
-    fn layouts(&self) -> Vec<Layout> {
-        self.layouts.clone()
-    }
-
-    fn layout_mode(&self) -> LayoutMode {
-        self.layout_mode
     }
 
     fn insert_behavior(&self) -> InsertBehavior {

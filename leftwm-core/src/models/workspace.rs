@@ -132,7 +132,7 @@ impl Workspace {
     /// Returns the x position for the workspace,
     /// while accounting for the optional `max_window_width` configuration
     #[must_use]
-    pub fn x_limited(&self, column_count: usize) -> i32 {
+    pub fn x_limited(&self) -> i32 {
         match self.width() {
             0 => self.x(),
             remainder => self.x() + (remainder / 2),

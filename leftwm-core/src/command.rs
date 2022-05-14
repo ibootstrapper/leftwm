@@ -19,19 +19,10 @@ pub enum Command {
     FloatingToTile,
     TileToFloating,
     ToggleFloating,
-    MoveWindowUp,
-    MoveWindowDown,
-    MoveWindowTop {
-        swap: bool,
-    },
+
     FocusNextTag,
     FocusPreviousTag,
     FocusWindow(String),
-    FocusWindowUp,
-    FocusWindowDown,
-    FocusWindowTop {
-        swap: bool,
-    },
     FocusWorkspaceNext,
     FocusWorkspacePrevious,
     SendWindowToTag {

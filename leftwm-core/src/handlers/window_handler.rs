@@ -293,7 +293,6 @@ fn setup_window(
 }
 
 fn insert_window(state: &mut State, window: &mut Window) {
-    let mut was_fullscreen = false;
     if window.r#type == WindowType::Normal {
         let for_active_workspace =
             |x: &Window| -> bool { helpers::intersect(&window.tags, &x.tags) && !x.is_unmanaged() };
@@ -306,7 +305,6 @@ fn insert_window(state: &mut State, window: &mut Window) {
             let act =
                 DisplayAction::SetState(fsw.handle, !fsw.is_fullscreen(), WindowState::Fullscreen);
             state.actions.push_back(act);
-            was_fullscreen = true;
         }
     }
 

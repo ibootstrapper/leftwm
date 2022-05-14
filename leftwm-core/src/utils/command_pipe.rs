@@ -99,12 +99,6 @@ fn parse_command(s: &str) -> Result<Command, Box<dyn std::error::Error>> {
         "FloatingToTile" => Ok(Command::FloatingToTile),
         "TileToFloating" => Ok(Command::TileToFloating),
         "ToggleFloating" => Ok(Command::ToggleFloating),
-        "MoveWindowUp" => Ok(Command::MoveWindowUp),
-        "MoveWindowDown" => Ok(Command::MoveWindowDown),
-        "MoveWindowTop" => build_move_window_top(rest),
-        "FocusWindowUp" => Ok(Command::FocusWindowUp),
-        "FocusWindowDown" => Ok(Command::FocusWindowDown),
-        "FocusWindowTop" => build_focus_window_top(rest),
         "FocusNextTag" => Ok(Command::FocusNextTag),
         "FocusPreviousTag" => Ok(Command::FocusPreviousTag),
         "FocusWorkspaceNext" => Ok(Command::FocusWorkspaceNext),
@@ -160,24 +154,6 @@ fn build_set_margin_multiplier(raw: &str) -> Result<Command, Box<dyn std::error:
         f32::from_str(raw)?
     };
     Ok(Command::SetMarginMultiplier(margin_multiplier))
-}
-
-fn build_focus_window_top(raw: &str) -> Result<Command, Box<dyn std::error::Error>> {
-    let swap = if raw.is_empty() {
-        false
-    } else {
-        bool::from_str(raw)?
-    };
-    Ok(Command::FocusWindowTop { swap })
-}
-
-fn build_move_window_top(raw: &str) -> Result<Command, Box<dyn std::error::Error>> {
-    let swap = if raw.is_empty() {
-        true
-    } else {
-        bool::from_str(raw)?
-    };
-    Ok(Command::MoveWindowTop { swap })
 }
 
 #[cfg(test)]
