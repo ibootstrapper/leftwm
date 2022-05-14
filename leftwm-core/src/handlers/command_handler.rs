@@ -9,12 +9,11 @@ use super::*;
 use crate::child_process::Children;
 use crate::display_action::DisplayAction;
 use crate::display_servers::DisplayServer;
-use crate::layouts::Layout;
 use crate::models::{TagId, WindowState};
 use crate::state::State;
 use crate::utils::helpers::relative_find;
 use crate::utils::{child_process::exec_shell, helpers};
-use crate::{config::Config, models::FocusBehaviour};
+//use crate::{config::Config, models::FocusBehaviour};
 
 impl<C: Config, SERVER: DisplayServer> Manager<C, SERVER> {
     /* Please also update src/bin/leftwm-check if any of the following apply after your update:
@@ -33,13 +32,13 @@ macro_rules! move_focus_common_vars {
         let handle = $state.focus_manager.window(&$state.windows)?.handle;
         let tag_id = $state.focus_manager.tag(0)?;
         let tag = $state.tags.get(tag_id)?;
-        let (tags, layout) = (vec![tag_id], Some(tag.layout));
+        let (tags, lid) = (vec![tag_id], Some(tag_id));
 
         let for_active_workspace =
             |x: &Window| -> bool { helpers::intersect(&tags, &x.tags) && !x.is_unmanaged() };
 
         let to_reorder = helpers::vec_extract(&mut $state.windows, for_active_workspace);
-        $func($state, handle, layout, to_reorder, $($arg),*)
+        $func($state, handle, to_reorder, $($arg),*)
     }};
 }
 
@@ -69,10 +68,6 @@ fn process_internal<C: Config, SERVER: DisplayServer>(
         Command::CloseWindow => close_window(state),
         Command::SwapScreens => swap_tags(state),
         Command::MoveWindowToLastWorkspace => move_to_last_workspace(state),
-        Command::NextLayout => next_layout(state),
-        Command::PreviousLayout => previous_layout(state),
-
-        Command::SetLayout(layout) => set_layout(*layout, state),
 
         Command::FloatingToTile => floating_to_tile(state),
         Command::TileToFloating => tile_to_floating(state),
@@ -112,10 +107,6 @@ fn process_internal<C: Config, SERVER: DisplayServer>(
             None
         }
 
-        Command::RotateTag => rotate_tag(state),
-
-        Command::IncreaseMainWidth(delta) => change_main_width(state, *delta, 1),
-        Command::DecreaseMainWidth(delta) => change_main_width(state, *delta, -1),
         Command::SetMarginMultiplier(multiplier) => set_margin_multiplier(state, *multiplier),
         Command::SendWorkspaceToTag(ws_index, tag_index) => {
             Some(send_workspace_to_tag(state, *ws_index, *tag_index))
@@ -358,35 +349,7 @@ fn focus_window_by_class(state: &mut State, window_class: &str) -> Option<bool> 
     let tag_id = target_window.tags.first()?;
     state.goto_tag_handler(*tag_id)?;
 
-    match state
-        .focus_manager
-        .workspace(&state.workspaces)
-        .map(|ws| ws.layout)
-    {
-        Some(layout) if layout == Layout::Monocle || layout == Layout::MainAndDeck => {
-            let mut windows = helpers::vec_extract(&mut state.windows, |w| {
-                w.has_tag(tag_id) && !w.is_unmanaged() && !w.floating()
-            });
-
-            let cycle = |wins: &mut Vec<Window>, s: &mut State| {
-                let window_index = wins.iter().position(|w| w.handle == handle).unwrap_or(0);
-                let _ = helpers::cycle_vec(wins, -(window_index as i32));
-                s.windows.append(wins);
-            };
-
-            if layout == Layout::Monocle && windows.len() > 1 {
-                cycle(&mut windows, state);
-            } else if layout == Layout::MainAndDeck && windows.len() > 2 {
-                let main_window = windows.remove(0);
-                state.windows.push(main_window);
-                cycle(&mut windows, state);
-            } else {
-                state.windows.append(&mut windows);
-            }
-
-            state.handle_window_focus(&handle);
-            Some(true)
-        }
+    match state.focus_manager.workspace(&state.workspaces) {
         Some(_) => {
             state.handle_window_focus(&handle);
             Some(true)
@@ -416,9 +379,6 @@ fn swap_tags(state: &mut State) -> Option<bool> {
         std::mem::swap(&mut state.workspaces.get_mut(hist_a)?.tags, &mut temp);
         // Update dock tags and layouts.
         state.update_static();
-        state
-            .layout_manager
-            .update_layouts(&mut state.workspaces, state.tags.all_mut());
 
         return Some(true);
     }
@@ -447,78 +407,6 @@ fn move_to_last_workspace(state: &mut State) -> Option<bool> {
         return Some(true);
     }
     None
-}
-
-fn next_layout(state: &mut State) -> Option<bool> {
-    let workspace = state.focus_manager.workspace_mut(&mut state.workspaces)?;
-    let layout = state.layout_manager.next_layout(workspace);
-    set_layout(layout, state)
-}
-
-fn previous_layout(state: &mut State) -> Option<bool> {
-    let workspace = state.focus_manager.workspace_mut(&mut state.workspaces)?;
-    let layout = state.layout_manager.previous_layout(workspace);
-    set_layout(layout, state)
-}
-
-fn set_layout(layout: Layout, state: &mut State) -> Option<bool> {
-    let tag_id = state.focus_manager.tag(0)?;
-    // When switching to Monocle or MainAndDeck layout while in Driven
-    // or ClickTo focus mode, we check if the focus is given to a visible window.
-    if state.focus_manager.behaviour != FocusBehaviour::Sloppy {
-        //if the currently focused window is floating, nothing will be done
-        let focused_window = state.focus_manager.window_history.get(0);
-        let is_focused_floating = match state
-            .windows
-            .iter()
-            .find(|w| Some(&Some(w.handle)) == focused_window)
-        {
-            Some(w) => w.floating(),
-            None => false,
-        };
-        if !is_focused_floating {
-            let mut to_focus: Option<Window> = None;
-
-            if layout == Layout::Monocle {
-                to_focus = state
-                    .windows
-                    .iter()
-                    .find(|w| w.has_tag(&tag_id) && !w.is_unmanaged() && !w.floating())
-                    .cloned();
-            } else if layout == Layout::MainAndDeck {
-                let tags_windows = state
-                    .windows
-                    .iter()
-                    .filter(|w| w.has_tag(&tag_id) && !w.is_unmanaged() && !w.floating())
-                    .collect::<Vec<&Window>>();
-                if let (Some(mw), Some(tdw)) = (tags_windows.get(0), tags_windows.get(1)) {
-                    // If the focused window is the main or the top of the deck, we don't do
-                    // anything.
-                    if let Some(&Some(h)) = focused_window {
-                        if mw.handle != h && tdw.handle != h {
-                            if let Some(w) = tags_windows.get(1).copied() {
-                                to_focus = Some(w.clone());
-                            }
-                        }
-                    }
-                }
-            }
-
-            if let Some(w) = to_focus {
-                state.focus_window(&w.handle);
-            }
-        }
-    }
-    let workspace = state.focus_manager.workspace_mut(&mut state.workspaces)?;
-    workspace.layout = layout;
-    let tag = state.tags.get_mut(tag_id)?;
-    match layout {
-        Layout::RightWiderLeftStack | Layout::LeftWiderRightStack => {
-            tag.set_layout(layout, layout.main_width());
-        }
-        _ => tag.set_layout(layout, workspace.main_width_percentage),
-    }
-    Some(true)
 }
 
 fn floating_to_tile(state: &mut State) -> Option<bool> {
@@ -582,26 +470,12 @@ fn toggle_floating(state: &mut State) -> Option<bool> {
 fn move_window_change(
     state: &mut State,
     mut handle: WindowHandle,
-    layout: Option<Layout>,
     mut to_reorder: Vec<Window>,
     val: i32,
 ) -> Option<bool> {
     let is_handle = |x: &Window| -> bool { x.handle == handle };
-    if layout == Some(Layout::Monocle) {
-        handle = helpers::relative_find(&to_reorder, is_handle, -val, true)?.handle;
-        let _ = helpers::cycle_vec(&mut to_reorder, val);
-    } else if layout == Some(Layout::MainAndDeck) {
-        if let Some(index) = to_reorder.iter().position(|x: &Window| !x.floating()) {
-            let mut window_group = to_reorder.split_off(index + 1);
-            if !to_reorder.iter().any(|w| w.handle == handle) {
-                handle = helpers::relative_find(&window_group, is_handle, -val, true)?.handle;
-            }
-            let _ = helpers::cycle_vec(&mut window_group, val);
-            to_reorder.append(&mut window_group);
-        }
-    } else {
-        let _ = helpers::reorder_vec(&mut to_reorder, is_handle, val);
-    }
+    let _ = helpers::reorder_vec(&mut to_reorder, is_handle, val);
+
     state.windows.append(&mut to_reorder);
     state.handle_window_focus(&handle);
     Some(true)
@@ -611,7 +485,6 @@ fn move_window_change(
 fn move_window_top(
     state: &mut State,
     handle: WindowHandle,
-    _layout: Option<Layout>,
     mut to_reorder: Vec<Window>,
     swap: bool,
 ) -> Option<bool> {
@@ -643,39 +516,16 @@ fn move_window_top(
 fn focus_window_change(
     state: &mut State,
     mut handle: WindowHandle,
-    layout: Option<Layout>,
     mut to_reorder: Vec<Window>,
     val: i32,
 ) -> Option<bool> {
     let is_handle = |x: &Window| -> bool { x.handle == handle };
-    if layout == Some(Layout::Monocle) {
-        // For Monocle we want to also move windows up/down
-        // Not the best solution but results
-        // in desired behaviour
-        handle = helpers::relative_find(&to_reorder, is_handle, -val, true)?.handle;
-        let _ = helpers::cycle_vec(&mut to_reorder, val);
-    } else if layout == Some(Layout::MainAndDeck) {
-        let len = to_reorder.len() as i32;
-        if len > 0 {
-            let index = match to_reorder.iter().position(|x: &Window| !x.floating()) {
-                Some(i) => {
-                    if i as i32 == len - 1 {
-                        i
-                    } else {
-                        i + 1
-                    }
-                }
-                None => len.saturating_sub(1) as usize,
-            };
-            let window_group = &to_reorder[..=index];
-            handle = helpers::relative_find(window_group, is_handle, -val, true)?.handle;
-        }
-    } else if let Some(new_focused) = helpers::relative_find(&to_reorder, is_handle, val, true) {
+    if let Some(new_focused) = helpers::relative_find(&to_reorder, is_handle, val, true) {
         handle = new_focused.handle;
     }
     state.windows.append(&mut to_reorder);
     state.handle_window_focus(&handle);
-    Some(layout == Some(Layout::Monocle))
+    Some(false) // TODO: fix this Ido
 }
 
 fn focus_window_top(state: &mut State, swap: bool) -> Option<bool> {
@@ -732,22 +582,6 @@ fn focus_workspace_change(state: &mut State, val: i32) -> Option<bool> {
     }
     state.focus_workspace(&workspace);
     None
-}
-
-fn rotate_tag(state: &mut State) -> Option<bool> {
-    let tag_id = state.focus_manager.tag(0)?;
-    let tag = state.tags.get_mut(tag_id)?;
-    tag.rotate_layout()?;
-    Some(true)
-}
-
-fn change_main_width(state: &mut State, delta: i8, factor: i8) -> Option<bool> {
-    let workspace = state.focus_manager.workspace_mut(&mut state.workspaces)?;
-    workspace.change_main_width(delta * factor);
-    let tag_id = state.focus_manager.tag(0)?;
-    let tag = state.tags.get_mut(tag_id)?;
-    tag.change_main_width(delta * factor);
-    Some(true)
 }
 
 fn set_margin_multiplier(state: &mut State, margin_multiplier: f32) -> Option<bool> {

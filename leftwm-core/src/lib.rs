@@ -23,7 +23,6 @@ pub mod display_servers;
 pub mod errors;
 mod event_loop;
 mod handlers;
-pub mod layouts;
 pub mod models;
 pub mod state;
 pub mod utils;

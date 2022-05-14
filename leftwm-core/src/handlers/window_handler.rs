@@ -3,7 +3,6 @@ use crate::child_process::exec_shell;
 use crate::config::{Config, InsertBehavior, ScratchPad};
 use crate::display_action::DisplayAction;
 use crate::display_servers::DisplayServer;
-use crate::layouts::Layout;
 use crate::models::{Size, WindowHandle, WindowState, Xyhw, XyhwBuilder};
 use crate::state::State;
 use crate::utils::helpers;
@@ -24,17 +23,15 @@ impl<C: Config, SERVER: DisplayServer> Manager<C, SERVER> {
         let mut is_first = false;
         let mut on_same_tag = true;
         //Random value
-        let mut layout: Layout = Layout::MainAndVertStack;
         setup_window(
             &mut self.state,
             &mut window,
             (x, y),
-            &mut layout,
             &mut is_first,
             &mut on_same_tag,
         );
         self.config.load_window(&mut window);
-        insert_window(&mut self.state, &mut window, layout);
+        insert_window(&mut self.state, &mut window);
 
         let follow_mouse = self.state.focus_manager.focus_new_windows
             && self.state.focus_manager.behaviour.is_sloppy()
@@ -219,7 +216,6 @@ fn setup_window(
     state: &mut State,
     window: &mut Window,
     xy: (i32, i32),
-    layout: &mut Layout,
     is_first: &mut bool,
     on_same_tag: &mut bool,
 ) {
@@ -242,7 +238,6 @@ fn setup_window(
                 .map_or_else(|| ws.tags.clone(), |terminal| terminal.tags.clone());
         }
         *on_same_tag = ws.tags == window.tags;
-        *layout = ws.layout;
 
         if is_scratchpad(state, window) {
             window.set_floating(true);
@@ -297,7 +292,7 @@ fn setup_window(
     }
 }
 
-fn insert_window(state: &mut State, window: &mut Window, layout: Layout) {
+fn insert_window(state: &mut State, window: &mut Window) {
     let mut was_fullscreen = false;
     if window.r#type == WindowType::Normal {
         let for_active_workspace =
@@ -312,29 +307,6 @@ fn insert_window(state: &mut State, window: &mut Window, layout: Layout) {
                 DisplayAction::SetState(fsw.handle, !fsw.is_fullscreen(), WindowState::Fullscreen);
             state.actions.push_back(act);
             was_fullscreen = true;
-        }
-        if matches!(layout, Layout::Monocle | Layout::MainAndDeck) {
-            // Extract the current windows on the same workspace.
-            let mut to_reorder = helpers::vec_extract(&mut state.windows, for_active_workspace);
-            if layout == Layout::Monocle || to_reorder.is_empty() {
-                // When in monocle we want the new window to be fullscreen if a window was
-                // fullscreen.
-                if was_fullscreen {
-                    let act = DisplayAction::SetState(
-                        window.handle,
-                        !window.is_fullscreen(),
-                        WindowState::Fullscreen,
-                    );
-                    state.actions.push_back(act);
-                }
-                // Place the window above the other windows on the workspace.
-                to_reorder.insert(0, window.clone());
-            } else {
-                // Place the window second within the other windows on the workspace.
-                to_reorder.insert(1, window.clone());
-            }
-            state.windows.append(&mut to_reorder);
-            return;
         }
     }
 

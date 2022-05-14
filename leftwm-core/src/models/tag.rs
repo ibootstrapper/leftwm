@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{layouts::Layout, Window, Workspace};
+use crate::{Window, Workspace};
 
 use super::TagId;
 
@@ -58,9 +58,9 @@ impl Tags {
     /// Create a new tag with the provided label and layout,
     /// and append it to the list of normal tags.
     /// The ID will be assigned automatically and returned.
-    pub fn add_new(&mut self, label: &str, layout: Layout) -> TagId {
+    pub fn add_new(&mut self, label: &str) -> TagId {
         let next_id = self.normal.len() + 1; // tag id starts at 1
-        let tag = Tag::new(next_id, label, layout);
+        let tag = Tag::new(next_id, label);
         let id = tag.id;
         self.normal.push(tag);
         id
@@ -69,9 +69,9 @@ impl Tags {
     /// Create a new tag with the provided layout, labelling it directly with its ID,
     /// and append it to the list of normal tags.
     /// The ID will be assigned automatically and returned.
-    pub fn add_new_unlabeled(&mut self, layout: Layout) -> TagId {
+    pub fn add_new_unlabeled(&mut self) -> TagId {
         let next_id = self.normal.len() + 1; // tag id starts at 1
-        self.add_new(next_id.to_string().as_str(), layout)
+        self.add_new(next_id.to_string().as_str())
     }
 
     // todo: add_new_at(position, label, layout)
@@ -213,31 +213,19 @@ pub struct Tag {
 
     /// The layout in which the windows
     /// on this Tag are arranged
-    pub layout: Layout,
-
-    /// The percentage of available space
-    /// which is designated for the "main"
-    /// column of the layout, compared
-    /// to the secondary column(s).
-    pub main_width_percentage: u8,
-
     pub flipped_horizontal: bool,
     pub flipped_vertical: bool,
-    pub layout_rotation: usize,
 }
 
 impl Tag {
     #[must_use]
-    pub fn new(id: TagId, label: &str, layout: Layout) -> Self {
+    pub fn new(id: TagId, label: &str) -> Self {
         Self {
             id,
             label: label.to_owned(),
             hidden: false,
-            layout,
-            main_width_percentage: layout.main_width(),
             flipped_horizontal: false,
             flipped_vertical: false,
-            layout_rotation: 0,
         }
     }
 
@@ -270,8 +258,7 @@ impl Tag {
                 .iter_mut()
                 .filter(|w| w.has_tag(&self.id) && !w.is_unmanaged() && !w.floating())
                 .collect();
-            self.layout
-                .update_windows(workspace, &mut managed_nonfloat, self);
+
             for w in &mut managed_nonfloat {
                 w.container_size = Some(workspace.xyhw);
             }
@@ -282,62 +269,19 @@ impl Tag {
                 .for_each(|w| w.normal = workspace.xyhw);
         }
     }
-
-    /// Changes the main width percentage by the provided delta.
-    /// Result is sanitized, so the percentage can't go below 0 or above 100.
-    ///
-    /// ## Arguments
-    /// * `delta` - increase/decrease main width percentage by this amount
-    pub fn change_main_width(&mut self, delta: i8) {
-        self.main_width_percentage = (self.main_width_percentage as i8 + delta)
-            .max(0) // not smaller than 0
-            .min(100) as u8; // not larger than 100
-    }
-
-    /// Sets the main width percentage
-    ///
-    /// ## Arguments
-    /// * `val` - the new with percentage
-    pub fn set_main_width(&mut self, val: u8) {
-        self.main_width_percentage = val.min(100); // not larger than 100
-    }
-
-    #[must_use]
-    pub fn main_width_percentage(&self) -> f32 {
-        f32::from(self.main_width_percentage)
-    }
-
-    pub fn set_layout(&mut self, layout: Layout, main_width_percentage: u8) {
-        self.layout = layout;
-        self.set_main_width(main_width_percentage);
-        self.layout_rotation = 0;
-    }
-
-    pub fn rotate_layout(&mut self) -> Option<()> {
-        let rotations = self.layout.rotations();
-        self.layout_rotation += 1;
-        if self.layout_rotation >= rotations.len() {
-            self.layout_rotation = 0;
-        }
-        let (horz, vert) = rotations.get(self.layout_rotation)?;
-        self.flipped_horizontal = *horz;
-        self.flipped_vertical = *vert;
-        Some(())
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Tags;
-    use crate::layouts::Layout;
 
     #[test]
     fn normal_tags_are_numbered_in_order() {
         let mut tags = Tags::new();
-        let home_id = tags.add_new("home", Layout::default());
-        let chat_id = tags.add_new("chat", Layout::default());
-        let surf_id = tags.add_new("surf", Layout::default());
-        let code_id = tags.add_new("code", Layout::default());
+        let home_id = tags.add_new("home");
+        let chat_id = tags.add_new("chat");
+        let surf_id = tags.add_new("surf");
+        let code_id = tags.add_new("code");
         assert_eq!(home_id, 1);
         assert_eq!(chat_id, 2);
         assert_eq!(surf_id, 3);

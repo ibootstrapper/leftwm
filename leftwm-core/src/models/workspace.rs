@@ -1,7 +1,5 @@
 use crate::config::Config;
-use crate::models::{
-    layouts::Layout, BBox, Gutter, Margins, Side, Size, TagId, Window, Xyhw, XyhwBuilder,
-};
+use crate::models::{BBox, Gutter, Margins, Side, TagId, Window, Xyhw, XyhwBuilder};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -9,9 +7,6 @@ use std::fmt;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Workspace {
     pub id: Option<i32>,
-    /// Active layout
-    pub layout: Layout,
-    pub main_width_percentage: u8,
     pub tags: Vec<TagId>,
     pub margin: Margins,
     pub margin_multiplier: f32,
@@ -20,7 +15,6 @@ pub struct Workspace {
     pub avoid: Vec<Xyhw>,
     pub xyhw: Xyhw,
     xyhw_avoided: Xyhw,
-    pub max_window_width: Option<Size>,
 }
 
 impl fmt::Debug for Workspace {
@@ -44,16 +38,9 @@ impl PartialEq for Workspace {
 
 impl Workspace {
     #[must_use]
-    pub fn new(
-        id: Option<i32>,
-        bbox: BBox,
-        layout: Layout,
-        max_window_width: Option<Size>,
-    ) -> Self {
+    pub fn new(id: Option<i32>, bbox: BBox) -> Self {
         Self {
             id,
-            layout,
-            main_width_percentage: layout.main_width(),
             tags: vec![],
             margin: Margins::new(10),
             margin_multiplier: 1.0,
@@ -75,7 +62,6 @@ impl Workspace {
                 ..XyhwBuilder::default()
             }
             .into(),
-            max_window_width,
         }
     }
 
@@ -147,7 +133,7 @@ impl Workspace {
     /// while accounting for the optional `max_window_width` configuration
     #[must_use]
     pub fn x_limited(&self, column_count: usize) -> i32 {
-        match self.width() - self.width_limited(column_count) {
+        match self.width() {
             0 => self.x(),
             remainder => self.x() + (remainder / 2),
         }
@@ -180,17 +166,6 @@ impl Workspace {
         self.xyhw_avoided.w() - (self.margin_multiplier * (left + right)) as i32 - gutter
     }
 
-    /// Returns the width of the workspace,
-    /// while accounting for the optional `max_window_width` configuration
-    #[must_use]
-    pub fn width_limited(&self, column_count: usize) -> i32 {
-        let width = self.width();
-        match self.max_window_width {
-            Some(size) => std::cmp::min(size.into_absolute(width) * column_count as i32, width),
-            None => width,
-        }
-    }
-
     fn get_gutter(&self, side: &Side) -> i32 {
         match self.gutters.iter().find(|g| &g.side == side) {
             Some(g) => g.value,
@@ -221,23 +196,6 @@ impl Workspace {
     pub const fn margin_multiplier(&self) -> f32 {
         self.margin_multiplier
     }
-
-    pub fn change_main_width(&mut self, delta: i8) {
-        //Check we are not gonna go negative
-        let mwp = &mut self.main_width_percentage;
-        if (*mwp as i8) < -delta {
-            *mwp = 0;
-            return;
-        }
-        if delta.is_negative() {
-            *mwp -= delta.unsigned_abs();
-            return;
-        }
-        *mwp += delta as u8;
-        if *mwp > 100 {
-            *mwp = 100;
-        }
-    }
 }
 
 #[cfg(test)]
@@ -255,7 +213,6 @@ mod tests {
                 x: 0,
                 y: 0,
             },
-            Layout::default(),
             None,
         );
         let w = Window::new(WindowHandle::MockHandle(1), None, None);

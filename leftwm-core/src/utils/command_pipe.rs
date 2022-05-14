@@ -1,5 +1,4 @@
 //! Creates a pipe to listen for external commands.
-use crate::layouts::Layout;
 use crate::models::TagId;
 use crate::Command;
 use std::env;
@@ -110,14 +109,10 @@ fn parse_command(s: &str) -> Result<Command, Box<dyn std::error::Error>> {
         "FocusPreviousTag" => Ok(Command::FocusPreviousTag),
         "FocusWorkspaceNext" => Ok(Command::FocusWorkspaceNext),
         "FocusWorkspacePrevious" => Ok(Command::FocusWorkspacePrevious),
-        "NextLayout" => Ok(Command::NextLayout),
-        "PreviousLayout" => Ok(Command::PreviousLayout),
-        "RotateTag" => Ok(Command::RotateTag),
         "CloseWindow" => Ok(Command::CloseWindow),
         "ToggleScratchPad" => build_toggle_scratchpad(rest),
         "SendWorkspaceToTag" => build_send_workspace_to_tag(rest),
         "SendWindowToTag" => build_send_window_to_tag(rest),
-        "SetLayout" => build_set_layout(rest),
         "SetMarginMultiplier" => build_set_margin_multiplier(rest),
         "CloseAllOtherWindows" => Ok(Command::CloseAllOtherWindows),
         _ => Ok(Command::Other(s.into())),
@@ -156,15 +151,6 @@ fn build_send_workspace_to_tag(raw: &str) -> Result<Command, Box<dyn std::error:
         .parse()?;
     let tag_index: usize = parts.next().ok_or("missing argument tag index")?.parse()?;
     Ok(Command::SendWorkspaceToTag(ws_index, tag_index))
-}
-
-fn build_set_layout(raw: &str) -> Result<Command, Box<dyn std::error::Error>> {
-    let layout_name = if raw.is_empty() {
-        return Err("missing layout name".into());
-    } else {
-        raw
-    };
-    Ok(Command::SetLayout(Layout::from_str(layout_name)?))
 }
 
 fn build_set_margin_multiplier(raw: &str) -> Result<Command, Box<dyn std::error::Error>> {

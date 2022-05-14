@@ -4,9 +4,8 @@ mod scratchpad;
 mod workspace_config;
 
 use crate::display_servers::DisplayServer;
-use crate::layouts::Layout;
 pub use crate::models::{FocusBehaviour, Gutter, Margins, Size};
-use crate::models::{LayoutMode, Manager, Window, WindowType};
+use crate::models::{Manager, Window, WindowType};
 use crate::state::State;
 pub use insert_behavior::InsertBehavior;
 pub use keybind::Keybind;
@@ -26,10 +25,6 @@ pub trait Config {
     fn mousekey(&self) -> Vec<String>;
 
     fn create_list_of_scratchpads(&self) -> Vec<ScratchPad>;
-
-    fn layouts(&self) -> Vec<Layout>;
-
-    fn layout_mode(&self) -> LayoutMode;
 
     fn insert_behavior(&self) -> InsertBehavior;
 
@@ -86,7 +81,6 @@ pub trait Config {
 #[derive(Default)]
 pub struct TestConfig {
     pub tags: Vec<String>,
-    pub layouts: Vec<Layout>,
     pub workspaces: Option<Vec<Workspace>>,
     pub insert_behavior: InsertBehavior,
 }
@@ -110,12 +104,6 @@ impl Config for TestConfig {
     }
     fn create_list_of_scratchpads(&self) -> Vec<ScratchPad> {
         vec![]
-    }
-    fn layouts(&self) -> Vec<Layout> {
-        self.layouts.clone()
-    }
-    fn layout_mode(&self) -> LayoutMode {
-        LayoutMode::Workspace
     }
 
     fn insert_behavior(&self) -> InsertBehavior {
